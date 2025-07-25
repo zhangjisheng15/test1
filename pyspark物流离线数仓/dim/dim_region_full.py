@@ -1,3 +1,4 @@
+
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import lit
 
@@ -7,7 +8,7 @@ def get_spark_session():
     """创建并返回启用Hive支持的SparkSession"""
     spark = SparkSession.builder \
         .appName("HiveETL") \
-        .config("hive.metastore.uris", "thrift://192.168.179.140:9083") \
+        .config("hive.metastore.uris", "thrift://cdh01:9083") \
         .config("spark.sql.hive.convertMetastoreOrc", "true") \
         .enableHiveSupport() \
         .getOrCreate()
@@ -15,7 +16,7 @@ def get_spark_session():
     # 设置日志级别
     sc = spark.sparkContext
     sc.setLogLevel("WARN")
-    spark.sql("USE gmall")
+    spark.sql("USE tms")
     return spark
 
 
@@ -23,19 +24,23 @@ def select_to_hive(jdbcDF, tableName, partition_date):
     # 使用insertInto方法写入已存在的分区表
     jdbcDF.write \
         .mode('append') \
-        .insertInto(f"gmall.{tableName}")
-
-
+        .insertInto(f"tms.{tableName}")
 
 # 2. 执行Hive SQL插入操作
 def execute_hive_insert(partition_date: str, tableName):
     spark = get_spark_session()
-
-    spark.sql("""ALTER TABLE gmall.dim_date ADD COLUMNS (ds STRING);""")
     # 构建SQL语句，修正字段别名以匹配Hive表结构
+
     select_sql = f"""
-select * from tmp_dim_date_info
-"""
+    select id,
+       parent_id,
+       name,
+       dict_code,
+       short_name
+from ods_base_region_info
+where ds = '20200623'
+  and is_deleted = '0';
+    """
 
     # 执行SQL
     print(f"[INFO] 开始执行SQL插入，分区日期：{partition_date}")
@@ -50,16 +55,13 @@ select * from tmp_dim_date_info
     # 写入Hive
     select_to_hive(df_with_partition, tableName, partition_date)
 
-
-
-
-
-
-
 # 4. 主函数（示例调用）
 if __name__ == "__main__":
     # 设置目标分区日期
-    target_date = '2025-06-27'
+    target_date = '2025-07-12'
 
     # 执行插入操作
-    execute_hive_insert(target_date, 'dim_date')
+    execute_hive_insert(target_date, 'dim_region_full')
+
+
+
