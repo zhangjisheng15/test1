@@ -153,7 +153,7 @@ WHERE
 select * from ads_product_sales_analysis;
 
 
--- ADS 层：用户行为转化分析表（基于文件中真实的 DWS 表）
+-- ADS 层：用户行为转化分析表
 DROP TABLE IF EXISTS ads_user_behavior_conversion;
 CREATE EXTERNAL TABLE ads_user_behavior_conversion (
                                                            product_category STRING COMMENT '商品品类',
